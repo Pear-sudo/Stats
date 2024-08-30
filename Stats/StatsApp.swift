@@ -8,12 +8,15 @@
 import SwiftUI
 import SwiftData
 
+let models: [any PersistentModel.Type] = [
+    Category.self,
+    Instance.self,
+]
+
 @main
 struct StatsApp: App {
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
+        let schema = Schema(models)
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {

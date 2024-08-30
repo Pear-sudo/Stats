@@ -10,19 +10,17 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @Query private var categories: [Category]
+    @State private var newCategorySheetIsShown = false
+    @State private var selections = Set<PersistentIdentifier>()
 
     var body: some View {
         NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+            List(selection: $selections) {
+                ForEach(categories, id: \.persistentModelID) { category in
+                    Text(category.name)
                 }
-                .onDelete(perform: deleteItems)
+                .onDelete(perform: deleteCategories)
             }
 #if os(macOS)
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
@@ -40,27 +38,67 @@ struct ContentView: View {
                 }
             }
         } detail: {
-            Text("Select an item")
+            if categories.isEmpty {
+                Text("Create a category")
+            } else if selections.isEmpty {
+                Text("Select a category")
+            } else if selections.count == 1 {
+                CategoryInput(category: modelContext.model(for: selections.first!) as! Category)
+            } else {
+                Text("\(selections.count) categories selected")
+            }
         }
+        .sheet(isPresented: $newCategorySheetIsShown) {
+            NewCategorySheet()
+        }
+        .onDeleteCommand(perform: deleteCategories)
+    }
+    
+    private func deleteCategories(offsets: IndexSet) {
+        for offset in offsets {
+            modelContext.delete(categories[offset])
+        }
+    }
+    
+    private func deleteCategories() {
+        for id in selections {
+            let model = modelContext.model(for: id)
+            modelContext.delete(model)
+        }
+        selections.removeAll()
     }
 
     private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
+        newCategorySheetIsShown = true
     }
+}
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+struct NewCategorySheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @State var text: String = ""
+    
+    var body: some View {
+        TextField("Name", text: $text)
+            .onSubmit {
+                submit()
             }
-        }
+            .frame(idealWidth: 100)
+            .padding()
+    }
+    
+    private func submit() {
+        let newCategory = Category(name: text)
+        modelContext.insert(newCategory)
+        dismiss()
     }
 }
 
 #Preview {
+    NewCategorySheet()
+}
+
+#Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: models, inMemory: false)
 }
