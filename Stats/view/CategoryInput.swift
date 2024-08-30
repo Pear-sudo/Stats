@@ -54,7 +54,7 @@ struct CategoryInput: View {
             count = nil
             start = nil
         }
-        let instance = start == nil ? Instance(count: count!, category: category) : Instance(start: start!, category: category)
+        let instance = start == nil ? Instance(count: count!, category: category) : Instance(start: start!, count: count!, category: category)
         modelContext.insert(instance)
     }
     
@@ -74,6 +74,8 @@ struct HistoryInstances: View {
     @State private var sortOrder = [KeyPathComparator(\Instance.start, order: .reverse)]
     @SceneStorage("InstanceTableConfig")
     private var columnCustomization: TableColumnCustomization<Instance>
+    @State private var countPopoverInstance: Instance? = nil
+    @State var count: Int = 0
     init(category: Category) {
         self.category = category
         let name = category.name
@@ -90,6 +92,19 @@ struct HistoryInstances: View {
         Table(of: Instance.self, selection: $selectedInstances, sortOrder: $sortOrder, columnCustomization: $columnCustomization) {
             TableColumn("Count", value: \.count) { instance in
                 Text(instance.count.formatted())
+                    .popover(isPresented: .init(get: {countPopoverInstance == instance}, set: {$0 == true ? (countPopoverInstance = instance) : (countPopoverInstance = nil)})) {
+                        TextField("Count", value: $count, format: .number)
+                            .onSubmit {
+                                instance.count = count
+                                countPopoverInstance = nil
+                            }
+                            .frame(minWidth: 50)
+                            .padding()
+                    }
+                    .onTapGesture(count: 2) {
+                        count = instance.count
+                        countPopoverInstance = instance
+                    }
             }
             .alignment(.center)
             .customizationID("count")

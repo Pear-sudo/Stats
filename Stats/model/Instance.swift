@@ -11,14 +11,13 @@ import Foundation
 @Model
 final class Instance: Identifiable {
     
-    init(start: Date = .now, end: Date = .now, count: Int = 0, category: Category) {
+    init(start: Date = .now, count: Int, category: Category) {
         self.start = start
-        self.end = end
         self.count = count
         self.category = category
     }
     
-    init(count: Int = 0, category: Category) {
+    init(count: Int, category: Category) {
         self.count = count
         self.category = category
     }
