@@ -11,6 +11,7 @@ import SwiftData
 let models: [any PersistentModel.Type] = [
     Category.self,
     Instance.self,
+    SelectedCategory.self,
 ]
 
 @main
