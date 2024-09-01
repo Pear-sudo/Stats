@@ -54,6 +54,9 @@ struct CategoryInspector: View {
             calculateStats()
         }
     }
+    
+    // MARK: - Statistics
+    
     private func calculateStats() {
         // TODO: cache stats for each day, month etc
         let name = category.name
@@ -92,6 +95,8 @@ struct CategoryInspector: View {
         }
     }
 }
+
+// MARK: - Previews
 
 struct PreviewDataInjector: PreviewModifier {
     static func makeSharedContext() throws -> ModelContainer {
@@ -135,4 +140,5 @@ struct CategoryInspectorWrapper: View {
 #Preview {
     CategoryInspectorWrapper()
         .modelContainer(for: models, inMemory: false)
+        .frame(width: 300)
 }
