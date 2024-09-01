@@ -20,6 +20,7 @@ struct ContentView: View {
     @State private var cancellable: AnyCancellable? = nil
     @State private var inspectorIsRestored = false
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         NavigationSplitView {
