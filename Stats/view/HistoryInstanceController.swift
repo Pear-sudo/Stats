@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import Combine
 
 struct HistoryInstanceController: View {
     
@@ -44,9 +45,12 @@ struct HistoryInstanceController: View {
                     }
                 Stepper(
                     value: $date,
-                    step: 60 * 60 * 24
+                    step: -60 * 60 * 24
                 ) {}
 
+            }
+            .onHover { bool in
+                onHoverDateController(bool)
             }
             HistoryInstanceTable(category: category, date: date)
         }
@@ -54,6 +58,38 @@ struct HistoryInstanceController: View {
     
     private func onDateTextTap() {
         datePickerIsShown.toggle()
+    }
+    
+    private func onHoverDateController(_ b: Bool) {
+        if b {
+            if trackScrollWheelCancellable == nil {
+                trackScrollWheel()
+            }
+        } else {
+            trackScrollWheelCancellable?.cancel()
+            trackScrollWheelCancellable = nil
+        }
+    }
+    
+    @State var trackScrollWheelCancellable: Cancellable?
+    private func trackScrollWheel() {
+        trackScrollWheelCancellable =
+        NSApp.publisher(for: \.currentEvent)
+            .filter { event in event?.type == .scrollWheel }
+            .throttle(for: .milliseconds(200),
+                      scheduler: DispatchQueue.main,
+                      latest: true)
+            .compactMap { $0 }
+            .filter { event in
+                abs(event.scrollingDeltaY) > 3
+            }
+            .sink { event in
+                if event.scrollingDeltaY < 0 {
+                    date = calendar.date(byAdding: .day, value: 1, to: date)!
+                } else {
+                    date = calendar.date(byAdding: .day, value: -1, to: date)!
+                }
+            }
     }
 }
 
