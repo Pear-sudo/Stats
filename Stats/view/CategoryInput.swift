@@ -44,7 +44,7 @@ struct CategoryInput: View {
                 }
                 .disabled(shouldSaveDisabled)
             }
-            HistoryInstances(category: category)
+            HistoryInstanceTable(category: category)
         }
         .padding()
     }

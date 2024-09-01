@@ -9,16 +9,20 @@
 import SwiftUI
 import SwiftData
 
-struct HistoryInstances: View {
+struct HistoryInstanceTable: View {
     @Environment(\.modelContext) private var modelContext
-    var category: Category
+    
     @Query private var instances: [Instance]
+    
+    @SceneStorage("InstanceTableConfig") private var columnCustomization: TableColumnCustomization<Instance>
+    
     @State private var selectedInstances = Set<Instance.ID>()
     @State private var sortOrder = [KeyPathComparator(\Instance.start, order: .reverse)]
-    @SceneStorage("InstanceTableConfig")
-    private var columnCustomization: TableColumnCustomization<Instance>
+    
     @State private var countPopoverInstance: Instance? = nil
-    @State private var count: Int = 0
+    @State private var countForPopover: Int = 0
+    
+    var category: Category
     init(category: Category) {
         self.category = category
         let name = category.name
@@ -31,21 +35,22 @@ struct HistoryInstances: View {
             sortBy: [.init(\.start, order: .reverse)]
         ), animation: .default)
     }
+    
     var body: some View {
         Table(of: Instance.self, selection: $selectedInstances, sortOrder: $sortOrder, columnCustomization: $columnCustomization) {
             TableColumn("Count", value: \.count) { instance in
                 Text(instance.count.formatted())
                     .popover(isPresented: .init(get: {countPopoverInstance == instance}, set: {$0 == true ? (countPopoverInstance = instance) : (countPopoverInstance = nil)})) {
-                        TextField("Count", value: $count, format: .number)
+                        TextField("Count", value: $countForPopover, format: .number)
                             .onSubmit {
-                                instance.count = count
+                                instance.count = countForPopover
                                 countPopoverInstance = nil
                             }
                             .frame(minWidth: 50)
                             .padding()
                     }
                     .onTapGesture(count: 2) {
-                        count = instance.count
+                        countForPopover = instance.count
                         countPopoverInstance = instance
                     }
             }
@@ -86,4 +91,16 @@ struct HistoryInstances: View {
     var sortedInstances: [Instance] {
         instances.sorted(using: sortOrder)
     }
+}
+
+struct HistoryInstanceTableWrapper: View {
+    @Query private var categories: [Category]
+    var body: some View {
+        HistoryInstanceTable(category: categories.first!)
+    }
+}
+
+#Preview {
+    HistoryInstanceTableWrapper()
+        .modelContainer(for: models, inMemory: false)
 }
