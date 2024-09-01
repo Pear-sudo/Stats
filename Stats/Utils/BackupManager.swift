@@ -12,10 +12,22 @@ import CryptoKit
 
 @Observable
 class BackupManager {
+    // MARK: - Class setup
     
     static let modelContext = sharedModelContest
-    
     static let `default`: BackupManager = BackupManager(backupDir: SQLite, fileToBackup: database, autoBackup: true)
+    static private let fileManager =  FileManager.default
+    
+    @ObservationIgnored private let backupDir: URL
+    @ObservationIgnored private let fileToBackup: URL
+    @ObservationIgnored private var fileManager: FileManager {
+        return BackupManager.fileManager
+    }
+    
+    @ObservationIgnored private let calendar = Calendar.current
+    
+    private var backupDirChangeDate: Date?
+    @ObservationIgnored private var folderMonitor: FolderMonitor
         
     init(backupDir: URL, fileToBackup: URL, autoBackup: Bool = false) {
         self.backupDir = backupDir
@@ -35,32 +47,27 @@ class BackupManager {
         }
     }
     
-    private let backupDir: URL
-    private let fileToBackup: URL
-    static private let fileManager =  FileManager.default
-    @ObservationIgnored private var fileManager: FileManager {
-        return BackupManager.fileManager
-    }
+    // MARK: - Configurations
+    @ObservationIgnored private let maxBackups = 20
     
-    @ObservationIgnored private let calendar = Calendar.current
-    
-    private var backupDirChangeDate: Date?
-    @ObservationIgnored private var backupStatsCacheDate: Date?
-    @ObservationIgnored private var backupStatsCache: BackupStats?
-    @ObservationIgnored private var folderMonitor: FolderMonitor
+    // MARK: - Directories and URLs
     
     static var container: String {
         NSHomeDirectory()
     }
+    
     static var containerURL: URL {
         URL(filePath: container, directoryHint: .isDirectory)
     }
+    
     static var autoBackupURL: URL {
         containerURL.appending(component: "AutoBackups", directoryHint: .isDirectory)
     }
+    
     static var SQLite: URL {
         autoBackupURL.appending(component: "SQLite", directoryHint: .isDirectory)
     }
+    
     static var database: URL {
         modelContext.container.configurations.first!.url
     }
@@ -88,6 +95,12 @@ class BackupManager {
     static func exist(url: URL) -> Bool {
         return fileManager.fileExists(atPath: url.path(percentEncoded: false))
     }
+        
+    // MARK: - Basic backup
+    
+    private var backupURL: URL {
+        backupDir.appending(path: "Stats_\(BackupManager.backupTimestamp).sqlite3", directoryHint: .notDirectory)
+    }
     
     static var backupTimestamp: String {
         let date = Date()
@@ -103,8 +116,6 @@ class BackupManager {
         
         return "\(dateString)_\(String(format: "%09d", nanoseconds))"
     }
-    
-    @ObservationIgnored private let maxBackups = 20
         
     func backup() {
         guard let stats = getBackupStats(), let latest = stats.latestBackupURL else {
@@ -138,6 +149,7 @@ class BackupManager {
     private func linkBackup(at: URL) {
         do {
             try fileManager.linkItem(at: at, to: backupURL)
+            lastBackupDate = .now
         } catch {
             print("Cannot create hard link")
         }
@@ -146,14 +158,13 @@ class BackupManager {
     private func copyBackup() {
         do {
             try fileManager.copyItem(at: fileToBackup, to: backupURL)
+            lastBackupDate = .now
         } catch {
             print("Backup failed with error: \(error)")
         }
     }
     
-    private var backupURL: URL {
-        backupDir.appending(path: "Stats_\(BackupManager.backupTimestamp).sqlite3", directoryHint: .notDirectory)
-    }
+    // MARK: - Duplication detection
     
     private func sameFilesByHash(_ file1: URL, _ file2: URL) -> Bool {
         do {
@@ -185,11 +196,6 @@ class BackupManager {
             throw error
         }
         return hasher.finalize()
-    }
-    
-    var backupStats: BackupStats? {
-//        let _ = backupDirChangeDate
-        return getBackupStats()
     }
     
     @discardableResult
@@ -224,6 +230,16 @@ class BackupManager {
             return nil
         }
         return deletionCount
+    }
+    
+    // MARK: - Backup statistics
+    
+    @ObservationIgnored private var backupStatsCacheDate: Date?
+    @ObservationIgnored private var backupStatsCache: BackupStats?
+    
+    var backupStats: BackupStats? {
+//        let _ = backupDirChangeDate
+        return getBackupStats()
     }
     
     // 2024-08-31_22-05-24_GMT_08-00_875154018.sqlite3
@@ -294,11 +310,40 @@ class BackupManager {
         return stats
     }
     
+    // MARK: - Auto backup
+    
     private func autoBackup() {
         autoBackupForToday()
         setupAutoBackupWhenTerminate()
         setupAutoBackupForFuture()
     }
+    
+    @ObservationIgnored private var lastBackupDate: Date?
+    
+    /// Create a daily backup
+    ///
+    /// Note I choose the file system as the single source of truth rather than caching the last backup date in some variables (user can delete files using finder, terminal, etc.)
+    /// - Returns: true if the backup is successful
+    @discardableResult
+    private func autoBackupForToday() -> Bool {
+        guard let stats = getBackupStats() else {
+            return false
+        }
+        guard let latestBackupDate = stats.latestBackupDate else {
+            if stats.count == 0 {
+                backup()
+                return true
+            } else {
+                return false
+            }
+        }
+        if !calendar.isDateInToday(latestBackupDate) {
+            backup()
+        }
+        return true
+    }
+    
+    // MARK: - Auto backup listeners
     
     @ObservationIgnored private let sharedNotificationCenter = NSWorkspace.shared.notificationCenter
     @ObservationIgnored private var areObserversAdded = false
@@ -353,25 +398,6 @@ class BackupManager {
         print("Screen is sleep")
     }
     
-    @discardableResult
-    private func autoBackupForToday() -> Bool {
-        guard let stats = getBackupStats() else {
-            return false
-        }
-        guard let latestBackupDate = stats.latestBackupDate else {
-            if stats.count == 0 {
-                backup()
-                return true
-            } else {
-                return false
-            }
-        }
-        if !calendar.isDateInToday(latestBackupDate) {
-            backup()
-        }
-        return true
-    }
-    
     @ObservationIgnored private var willTerminateCancellable: AnyCancellable?
     
     @discardableResult
@@ -386,6 +412,8 @@ class BackupManager {
         return true
     }
 }
+
+// MARK: - Data structs
 
 struct BackupStats {
     var count: Int
@@ -403,45 +431,5 @@ struct FileName: Identifiable, Hashable {
     var shouldBeCreated: Bool = true
     var id: Self {
         self
-    }
-}
-
-class FolderMonitor {
-    
-    private var monitoredFolderFileDescriptor: CInt = -1
-    private let folderMonitorQueue = DispatchQueue(label: "FolderMonitorQueue", attributes: .concurrent)
-    private var folderMonitorSource: DispatchSourceFileSystemObject?
-    let url: Foundation.URL
-    
-    init(url: Foundation.URL) {
-        self.url = url
-    }
-    
-    var folderDidChange: (() -> Void)?
-    
-    func startMonitoring() {
-        guard folderMonitorSource == nil && monitoredFolderFileDescriptor == -1 else {
-            return
-            
-        }
-        monitoredFolderFileDescriptor = open(url.path, O_EVTONLY)
-        folderMonitorSource = DispatchSource.makeFileSystemObjectSource(fileDescriptor: monitoredFolderFileDescriptor, eventMask: [.write, .link], queue: folderMonitorQueue)
-        
-        folderMonitorSource?.setEventHandler { [weak self] in
-            self?.folderDidChange?()
-        }
-        
-        folderMonitorSource?.setCancelHandler { [weak self] in
-            guard let strongSelf = self else { return }
-            close(strongSelf.monitoredFolderFileDescriptor)
-            strongSelf.monitoredFolderFileDescriptor = -1
-            strongSelf.folderMonitorSource = nil
-        }
-        
-        folderMonitorSource?.resume()
-    }
-    
-    func stopMonitoring() {
-        folderMonitorSource?.cancel()
     }
 }
