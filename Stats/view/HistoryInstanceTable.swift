@@ -12,7 +12,7 @@ import SwiftData
 struct HistoryInstanceTable: View {
     @Environment(\.modelContext) private var modelContext
     
-    @Query private var instances: [Instance]
+    @Query(FetchDescriptor<Instance>.dummy) private var instances: [Instance]
     
     @SceneStorage("InstanceTableConfig") private var columnCustomization: TableColumnCustomization<Instance>
     
@@ -23,14 +23,22 @@ struct HistoryInstanceTable: View {
     @State private var countForPopover: Int = 0
     
     var category: Category
-    init(category: Category) {
+    var date: Date
+    init(category: Category, date: Date = .now) {
         self.category = category
+        self.date = date
+        
+        let calendar = Calendar.current
+        
         let name = category.name
-        let startOfToday = Calendar.current.startOfDay(for: .now)
+        let startOfDate = calendar.startOfDay(for: date)
+        let endOfDate = calendar.date(byAdding: .day, value: 1, to: startOfDate)!.addingTimeInterval(-1e-9)
+        
         _instances = Query(FetchDescriptor(
             predicate: #Predicate<Instance> { instance in
                 instance.category.name == name &&
-                instance.start >= startOfToday
+                instance.start >= startOfDate &&
+                instance.start <= endOfDate
             },
             sortBy: [.init(\.start, order: .reverse)]
         ), animation: .default)
