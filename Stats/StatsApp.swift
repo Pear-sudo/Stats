@@ -29,10 +29,20 @@ var sharedModelContest: ModelContext = ModelContext(sharedModelContainer)
 
 @main
 struct StatsApp: App {
+    private var commandSubject: CommandSubject = .init()
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(\EnvironmentValues.commands, commandSubject)
         }
+        .commands(content: {
+            CommandMenu("Control") {
+                Button("Start") {
+                    commandSubject.send(.start)
+                }
+                .keyboardShortcut("s", modifiers: .command)
+            }
+        })
         .modelContainer(sharedModelContainer)
         
         Settings {

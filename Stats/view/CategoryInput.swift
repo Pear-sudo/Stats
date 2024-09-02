@@ -10,28 +10,34 @@ import SwiftData
 
 struct CategoryInput: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.commands) private var commands
+    
     var category: Category
-    @State var start: Date? = nil
-    @State var count: Int? = nil
+    
+    @State private var startDate: Date? = nil
+    @State private var count: Int? = nil
+    @FocusState private var inputIsFocused
+    
     var body: some View {
         VStack {
             HStack {
-                Button(start == nil ? "Start" : start!.formatted(
+                Button(startDate == nil ? "Start" : startDate!.formatted(
                     Date.FormatStyle()
                         .hour(.defaultDigits(amPM: .abbreviated))
                         .minute(.defaultDigits)
                         .second(.defaultDigits)
                 )) {
-                    start = .now
+                    start()
                 }
-                .disabled(start != nil)
+                .disabled(startDate != nil)
                 .contextMenu {
-                    if start != nil {
-                        Button(role: .destructive) {
-                            start = .now
-                        } label: {
-                            Text("Reset to now")
-                                .foregroundStyle(.red)
+                    if startDate != nil {
+                        Button("Reset to now", role: .destructive) {
+                            startDate = .now
+                        }
+                        Button("Cancel") {
+                            startDate = nil
+                            inputIsFocused = false
                         }
                     }
                 }
@@ -39,6 +45,7 @@ struct CategoryInput: View {
                     .onSubmit {
                         save()
                     }
+                    .focused($inputIsFocused)
                 Button("Save") {
                     save()
                 }
@@ -48,18 +55,30 @@ struct CategoryInput: View {
             HistoryInstance(category: category)
         }
         .padding()
+        .onReceive(commands) { command in
+            switch command {
+            case .start:
+                start()
+            }
+        }
     }
     
-    func save() {
+    private func start() {
+        startDate = .now
+        inputIsFocused = true
+    }
+    
+    private func save() {
         defer {
             count = nil
-            start = nil
+            startDate = nil
+            inputIsFocused = false
         }
-        let instance = start == nil ? Instance(count: count!, category: category) : Instance(start: start!, count: count!, category: category)
+        let instance = startDate == nil ? Instance(count: count!, category: category) : Instance(start: startDate!, count: count!, category: category)
         modelContext.insert(instance)
     }
     
-    var shouldSaveDisabled: Bool {
+    private var shouldSaveDisabled: Bool {
         if count == nil {
             return true
         }
