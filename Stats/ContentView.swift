@@ -123,7 +123,7 @@ struct ContentView: View {
         } else if selections.isEmpty {
             Text("Select a category")
         } else if selections.count == 1 {
-            CategoryInput(category: modelContext.model(for: selections.first!) as! Category)
+            CategoryView(category: modelContext.model(for: selections.first!) as! Category)
         } else {
             Text("\(selections.count) categories selected")
         }

@@ -19,46 +19,48 @@ struct CategoryInput: View {
     @FocusState private var inputIsFocused
     
     var body: some View {
-        VStack {
-            HStack {
-                Button(startDate == nil ? "Start" : startDate!.formatted(
-                    Date.FormatStyle()
-                        .hour(.defaultDigits(amPM: .abbreviated))
-                        .minute(.defaultDigits)
-                        .second(.defaultDigits)
-                )) {
-                    start()
-                }
-                .disabled(startDate != nil)
-                .contextMenu {
-                    if startDate != nil {
-                        Button("Reset to now", role: .destructive) {
-                            startDate = .now
-                        }
-                        Button("Cancel") {
-                            startDate = nil
-                            inputIsFocused = false
-                        }
-                    }
-                }
-                TextField("Count", value: $count, format: .number)
-                    .onSubmit {
-                        save()
-                    }
-                    .focused($inputIsFocused)
-                Button("Save") {
-                    save()
-                }
-                .disabled(shouldSaveDisabled)
+        HStack {
+            
+            Button(startDate == nil ? "Start" : startDate!.formatted(
+                Date.FormatStyle()
+                    .hour(.defaultDigits(amPM: .abbreviated))
+                    .minute(.defaultDigits)
+                    .second(.defaultDigits)
+            )) {
+                start()
             }
-            Divider()
-            HistoryInstance(category: category)
+            .disabled(startDate != nil)
+            .contextMenu {
+                if startDate != nil {
+                    Button("Reset to now", role: .destructive) {
+                        startDate = .now
+                    }
+                    Button("Cancel") {
+                        startDate = nil
+                        inputIsFocused = false
+                    }
+                }
+            }
+            
+            TextField("Count", value: $count, format: .number)
+                .onSubmit {
+                    enter()
+                }
+                .focused($inputIsFocused)
+            
+            Button("Enter") {
+                enter()
+            }
+            .disabled(shouldSaveDisabled)
         }
-        .padding()
         .onReceive(commands) { command in
             switch command {
             case .start:
                 start()
+            case .enter:
+                enter()
+            default:
+                break
             }
         }
     }
@@ -68,7 +70,7 @@ struct CategoryInput: View {
         inputIsFocused = true
     }
     
-    private func save() {
+    private func enter() {
         defer {
             count = nil
             startDate = nil
@@ -84,9 +86,4 @@ struct CategoryInput: View {
         }
         return false
     }
-}
-
-#Preview {
-    CategoryInput(category: Category(name: "push-up"))
-        .modelContainer(for: models, inMemory: false)
 }

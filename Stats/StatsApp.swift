@@ -41,6 +41,10 @@ struct StatsApp: App {
                     commandSubject.send(.start)
                 }
                 .keyboardShortcut("s", modifiers: .command)
+                Button("Enter") {
+                    commandSubject.send(.enter)
+                }
+                .keyboardShortcut(.return, modifiers: .command)
             }
         })
         .modelContainer(sharedModelContainer)

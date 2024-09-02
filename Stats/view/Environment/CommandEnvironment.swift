@@ -10,7 +10,8 @@ import SwiftUI
 import Combine
 
 enum Command {
-    case start
+    case unknown
+    case start, enter
 }
 
 typealias CommandSubject = PassthroughSubject<Command, Never>
