@@ -45,7 +45,11 @@ fileprivate struct HistoryInstanceKernel: View {
     
     var body: some View {
         VStack(alignment: .leading) {
-            HistoryInstanceController(date: $date)
+            HStack {
+                HistoryInstanceController(date: $date)
+                Spacer()
+                TodayInstanceStats(instances: instances)
+            }
             HistoryInstanceTable(instances: instances)
         }
     }
