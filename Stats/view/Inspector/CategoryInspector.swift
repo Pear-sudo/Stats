@@ -17,7 +17,24 @@ struct CategoryInspector: View {
         .historicalCharts: true
     ]
     
+    @Query(FetchDescriptor<Instance>.dummy) private var instances: [Instance]
+    
     var category: Category
+    
+    init(category: Category) {
+        self.category = category
+        
+        let calendar = Calendar.current
+        let endOfToday = calendar.dateInterval(of: .day, for: .now)!.end
+        let includeCount = 14
+        let startOfPeriod = calendar.date(byAdding: .day, value: -includeCount - 1, to: endOfToday)!
+        self._instances = Query(FetchDescriptor<Instance>(
+            predicate: #Predicate { instance in
+                instance.start > startOfPeriod &&
+                instance.start < endOfToday
+            }
+        ))
+    }
     
     var body: some View {
         VStack(alignment: .center) {
@@ -26,7 +43,7 @@ struct CategoryInspector: View {
                     HistoricalStats(category: category)
                 }
                 DisclosureGroup(DisclosureGroupName.historicalCharts.rawValue, isExpanded: self[.historicalCharts]) {
-                    HistoricalChart(category: category)
+                    HistoricalChart(category: category, instances: instances)
                 }
             }
         }
@@ -111,7 +128,7 @@ struct DataInjector<Content>: View where Content: View {
     }
 }
 
-struct CategoryInspectorWrapper: View {
+fileprivate struct CategoryInspectorWrapper: View {
     @Query var categories: [Category]
     var body: some View {
         CategoryInspector(category: categories.first!)
