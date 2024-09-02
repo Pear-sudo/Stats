@@ -12,11 +12,41 @@ struct HistoryInstance: View {
     var category: Category
     
     @State private var date: Date = .now
+        
+    var body: some View {
+        HistoryInstanceKernel(category: category, date: $date)
+    }
+}
+
+fileprivate struct HistoryInstanceKernel: View {
+    @Binding var date: Date
+    var category: Category
+    init(category: Category, date: Binding<Date>) {
+        self.category = category
+        self._date = date
+        
+        let calendar = Calendar.current
+        
+        let name = category.name
+        let startOfDate = calendar.startOfDay(for: date.wrappedValue)
+        let endOfDate = calendar.date(byAdding: .day, value: 1, to: startOfDate)!.addingTimeInterval(-1e-9)
+        
+        _instances = Query(FetchDescriptor(
+            predicate: #Predicate<Instance> { instance in
+                instance.category.name == name &&
+                instance.start >= startOfDate &&
+                instance.start <= endOfDate
+            },
+            sortBy: [.init(\.start, order: .reverse)]
+        ), animation: .default)
+    }
+    
+    @Query(FetchDescriptor<Instance>.dummy) private var instances: [Instance]
     
     var body: some View {
         VStack(alignment: .leading) {
             HistoryInstanceController(date: $date)
-            HistoryInstanceTable(category: category, date: date)
+            HistoryInstanceTable(instances: instances)
         }
     }
 }

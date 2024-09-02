@@ -11,10 +11,8 @@ import SwiftData
 
 struct HistoryInstanceTable: View {
     @Environment(\.modelContext) private var modelContext
-    
-    @Query(FetchDescriptor<Instance>.dummy) private var instances: [Instance]
-    
-    @SceneStorage("InstanceTableConfig") private var columnCustomization: TableColumnCustomization<Instance>
+        
+    @AppStorage("InstanceTableConfig") private var columnCustomization: TableColumnCustomization<Instance>
     
     @State private var selectedInstances = Set<Instance.ID>()
     @State private var sortOrder = [KeyPathComparator(\Instance.start, order: .reverse)]
@@ -22,26 +20,9 @@ struct HistoryInstanceTable: View {
     @State private var countPopoverInstance: Instance? = nil
     @State private var countForPopover: Int = 0
     
-    var category: Category
-    var date: Date
-    init(category: Category, date: Date = .now) {
-        self.category = category
-        self.date = date
-        
-        let calendar = Calendar.current
-        
-        let name = category.name
-        let startOfDate = calendar.startOfDay(for: date)
-        let endOfDate = calendar.date(byAdding: .day, value: 1, to: startOfDate)!.addingTimeInterval(-1e-9)
-        
-        _instances = Query(FetchDescriptor(
-            predicate: #Predicate<Instance> { instance in
-                instance.category.name == name &&
-                instance.start >= startOfDate &&
-                instance.start <= endOfDate
-            },
-            sortBy: [.init(\.start, order: .reverse)]
-        ), animation: .default)
+    var instances: [Instance]
+    init(instances: [Instance]) {
+        self.instances = instances
     }
     
     var body: some View {
@@ -99,16 +80,4 @@ struct HistoryInstanceTable: View {
     var sortedInstances: [Instance] {
         instances.sorted(using: sortOrder)
     }
-}
-
-struct HistoryInstanceTableWrapper: View {
-    @Query private var categories: [Category]
-    var body: some View {
-        HistoryInstanceTable(category: categories.first!)
-    }
-}
-
-#Preview {
-    HistoryInstanceTableWrapper()
-        .modelContainer(for: models, inMemory: false)
 }
