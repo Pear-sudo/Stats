@@ -28,7 +28,7 @@ struct TodayInstanceStats: View {
     }
     
     private var min: Int {
-        instances.reduce(0, {Swift.min($0, $1.count)})
+        instances.isEmpty ? 0 : instances.reduce(Int.max, {Swift.min($0, $1.count)})
     }
     
     private var counts: [Int] {
