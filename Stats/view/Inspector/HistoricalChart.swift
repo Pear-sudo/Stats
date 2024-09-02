@@ -14,8 +14,15 @@ struct HistoricalChart: View {
     var category: Category
     var instances: [Instance]
     
+    init(category: Category, instances: [Instance]) {
+        self.category = category
+        self.instances = instances
+        self.dailyDatas = HistoricalChart.getDailyData(instances: instances)
+    }
+    
     private let calendar = Calendar.current
     private let lineWidth: CGFloat = 2
+    private var dailyDatas: [DailyData]
     
     @State private var selectedDataPoint: DailyData? = nil
     
@@ -166,7 +173,8 @@ struct HistoricalChart: View {
     
     // MARK: - Data
     
-    private var dailyDatas: [DailyData] {
+    private static func getDailyData(instances: [Instance]) -> [DailyData] {
+        let calendar =  Calendar.current
         var dataMap = [Date:DailyData]()
         instances.forEach { instance in
             let key = calendar.startOfDay(for: instance.start)
