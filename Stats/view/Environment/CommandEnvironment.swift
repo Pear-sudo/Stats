@@ -12,6 +12,7 @@ import Combine
 enum Command {
     case unknown
     case start, enter
+    case toggleNavigation
 }
 
 typealias CommandSubject = PassthroughSubject<Command, Never>

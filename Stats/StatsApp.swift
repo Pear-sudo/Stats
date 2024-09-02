@@ -35,6 +35,7 @@ struct StatsApp: App {
             ContentView()
                 .environment(\EnvironmentValues.commands, commandSubject)
         }
+        .commandsRemoved()
         .commands(content: {
             CommandMenu("Control") {
                 Button("Start") {
@@ -45,6 +46,12 @@ struct StatsApp: App {
                     commandSubject.send(.enter)
                 }
                 .keyboardShortcut(.return, modifiers: .command)
+            }
+            CommandGroup(after: .toolbar) {
+                Button("Hide Navigation") {
+                    commandSubject.send(.toggleNavigation)
+                }
+                .keyboardShortcut("0")
             }
         })
         .modelContainer(sharedModelContainer)

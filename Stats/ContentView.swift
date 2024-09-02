@@ -10,20 +10,26 @@ import SwiftData
 import Combine
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
     @Query private var categories: [Category]
-    @State private var newCategorySheetIsShown = false
-    @State private var selections = Set<PersistentIdentifier>()
+    
     @AppStorage("inspectorIsPresented") private var inspectorIsPresented = true
     @AppStorage("inspectorIdealWidth") private var inspectorIdealWidth = 200
-    private let widthSubject = PassthroughSubject<CGFloat, Never>()
+    
+    @State private var newCategorySheetIsShown = false
+    @State private var selections = Set<PersistentIdentifier>()
     @State private var cancellable: AnyCancellable? = nil
     @State private var inspectorIsRestored = false
+    @State private var columnVisibility: NavigationSplitViewVisibility = .detailOnly
+    
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.commands) private var commands
+    
+    private let widthSubject = PassthroughSubject<CGFloat, Never>()
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             List(selection: $selections) {
                 ForEach(categories, id: \.persistentModelID) { category in
                     Text(category.name)
@@ -93,6 +99,33 @@ struct ContentView: View {
                     }
             } else {
                 detail
+            }
+        }
+        .onReceive(commands, perform: { command in
+            switch command {
+            case .toggleNavigation:
+                if columnVisibility == .detailOnly {
+                    columnVisibility = .doubleColumn
+                } else {
+                    columnVisibility = .detailOnly
+                }
+            default:
+                break
+            }
+        })
+        .onChange(of: columnVisibility, {
+            guard let data = try? JSONEncoder().encode(columnVisibility) else {
+                return
+            }
+            UserDefaults.standard.set(data, forKey: "columnVisibility")
+        })
+        .onAppear {
+            guard let data = UserDefaults.standard.data(forKey: "columnVisibility"),
+                  let visibility = try? JSONDecoder().decode(NavigationSplitViewVisibility.self, from: data) else {
+                return
+            }
+            if columnVisibility !=  visibility {
+                columnVisibility = visibility
             }
         }
         .toolbar {
