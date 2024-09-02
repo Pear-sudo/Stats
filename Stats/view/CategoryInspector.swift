@@ -40,23 +40,11 @@ struct CategoryInspector: View {
     
     var body: some View {
         VStack(alignment: .center) {
-            DisclosureGroup(DisclosureGroupName.historicalStats.rawValue, isExpanded: self[.historicalStats]) {
-                Grid(alignment: .leading) {
-                    GridRow {
-                        Text("min: \(stats.min.formatted())")
-                        Text("max: \(stats.max.formatted())")
-                    }
-                    .fixedSize()
-                    GridRow {
-                        Text("avg: \(stats.avg.formatted(.number.precision(.fractionLength(2))))")
-                        Text("std: \(stats.std.formatted(.number.precision(.fractionLength(2))))")
-                    }
-                    .fixedSize()
-                }
+            ScrollView {
+                DisclosureGroup(DisclosureGroupName.historicalStats.rawValue, isExpanded: self[.historicalStats]) { historicalStats }
             }
-            Spacer()
         }
-        .padding(.top)
+        .padding()
         .frame(maxWidth: .infinity)
         .onAppear {
             handleOnAppear()
@@ -73,6 +61,23 @@ struct CategoryInspector: View {
     private func handleOnAppear() {
         calculateStats()
         restoreDisclosureGroupStats()
+    }
+    
+    // MARK: - Views
+    
+    var historicalStats: some View {
+        Grid(alignment: .leading) {
+            GridRow {
+                Text("min: \(stats.min.formatted())")
+                Text("max: \(stats.max.formatted())")
+            }
+            .fixedSize()
+            GridRow {
+                Text("avg: \(stats.avg.formatted(.number.precision(.fractionLength(2))))")
+                Text("std: \(stats.std.formatted(.number.precision(.fractionLength(2))))")
+            }
+            .fixedSize()
+        }
     }
     
     // MARK: - Disclosure Group
