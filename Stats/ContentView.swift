@@ -67,6 +67,7 @@ struct ContentView: View {
         } detail: {
             if selections.count == 1 {
                 detail
+                    .navigationTitle((modelContext.model(for: selections.first!) as! Category).name)
                     .inspector(isPresented: $inspectorIsPresented) {
                         CategoryInspector(category: modelContext.model(for: selections.first!) as! Category)
                             .inspectorColumnWidth(min: inspectorIsRestored ? 100 : CGFloat(inspectorIdealWidth), ideal: CGFloat(inspectorIdealWidth), max: 300)
