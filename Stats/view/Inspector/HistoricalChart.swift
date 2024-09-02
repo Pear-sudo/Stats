@@ -23,9 +23,26 @@ struct HistoricalChart: View {
         Chart(dailyDatas) { data in
             lineMark(data)
         }
+        .chartXAxis(content: xAxis)
         .chartOverlay(content: overlay)
         .chartBackground(content: background)
         .padding()
+    }
+    
+    // MARK: - Axis
+    
+    @AxisContentBuilder private func xAxis() -> some AxisContent {
+        AxisMarks(values: dailyDatas.map(\.date)) { value in
+            if let date = value.as(Date.self) {
+                if calendar.isDateAtStartOfMonth(date) {
+                    AxisValueLabel(format: .dateTime.month().day())
+                } else {
+                    AxisValueLabel(format: .dateTime.day())
+                }
+            }
+            AxisGridLine()
+            AxisTick()
+        }
     }
     
     // MARK: - Subviews
@@ -64,19 +81,30 @@ struct HistoricalChart: View {
     
     @ViewBuilder private func background(proxy: ChartProxy) -> some View {
         GeometryReader { geo in
-            if
-                let selectedDataPoint {
-                let dateInterval = Calendar.current.dateInterval(of: .day, for: selectedDataPoint.date)!
-                let startPositionX1 = proxy.position(forX: dateInterval.start) ?? 0
+            if let selectedDataPoint {
+                let deltaX = proxy.position(forX: selectedDataPoint.date) ?? 0
                 
-                let lineX = startPositionX1 + geo[proxy.plotFrame!].origin.x
-                let lineHeight = geo[proxy.plotFrame!].maxY
+                let plotFrame = geo[proxy.plotFrame!]
+                
+                let lineX = deltaX + plotFrame.origin.x
+                let lineHeight = plotFrame.height
+                let lineWidth: CGFloat = 2
+                
                 let boxWidth: CGFloat = 100
-                let boxOffset = max(0, min(geo.size.width - boxWidth, lineX - boxWidth / 2))
+                let boxOffset: CGFloat = {
+                    let offset = max(0, min(plotFrame.width - boxWidth, lineX - boxWidth / 2))
+                    if lineX == plotFrame.maxX {
+                        return offset + lineWidth
+                    }
+                    if lineX == plotFrame.minX {
+                        return offset - lineWidth
+                    }
+                    return offset
+                }()
                 
                 Rectangle()
                     .fill(.red)
-                    .frame(width: 2, height: lineHeight)
+                    .frame(width: lineWidth, height: lineHeight)
                     .position(x: lineX, y: lineHeight / 2)
                 
                 VStack(alignment: .center) {
@@ -84,19 +112,17 @@ struct HistoricalChart: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                     Text("\(selectedDataPoint.count, format: .number)")
-                        .font(.title2.bold())
+                        .font(.headline)
                         .foregroundColor(.primary)
                 }
-                .frame(width: boxWidth, alignment: .leading)
+                .padding(.top, 1)
+                .frame(width: boxWidth, alignment: .center)
                 .background {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(.background)
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(.quaternary.opacity(0.7))
-                    }
-                    .padding(.horizontal, -8)
-                    .padding(.vertical, -4)
+                    UnevenRoundedRectangle(cornerRadii: .init(
+                        bottomLeading: lineX == plotFrame.minX ? 0 : 8,
+                        bottomTrailing: lineX == plotFrame.maxX ? 0 : 8
+                    ))
+                    .fill(.background)
                 }
                 .offset(x: boxOffset)
             }
@@ -162,6 +188,30 @@ struct HistoricalChart: View {
         var id: Date {
             date
         }
+    }
+}
+
+// MARK: - extensions
+
+fileprivate extension Calendar {
+    func isDateAtEndOfMonth(_ date: Date) -> Bool {
+        guard let range = self.range(of: .day, in: .month, for: date) else {
+            return false
+        }
+        let lastDay = range.upperBound - 1
+        let dayComponent = self.component(.day, from: date)
+        return dayComponent == lastDay
+    }
+}
+
+fileprivate extension Calendar {
+    func isDateAtStartOfMonth(_ date: Date) -> Bool {
+        guard let range = self.range(of: .day, in: .month, for: date) else {
+            return false
+        }
+        let firstDay = range.lowerBound
+        let dayComponent = self.component(.day, from: date)
+        return dayComponent == firstDay
     }
 }
 
