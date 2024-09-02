@@ -13,8 +13,6 @@ struct TodayInstanceStats: View {
     
     var body: some View {
         HStack {
-            Text("Today:")
-                .font(.headline)
             TextPair("N", instances.count)
             TextPair("Max", max)
             TextPair("Min", min)
