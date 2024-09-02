@@ -11,48 +11,41 @@ import Combine
 
 struct HistoryInstanceController: View {
     
-    var category: Category
-    init(category: Category) {
-        self.category = category
-    }
+    @Binding var date: Date
     
-    @State private var date: Date = .now
     @State private var datePickerIsShown = false
     
     private let calendar =  Calendar.current
     
     var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Text(date, style: .date)
-                    .font(.headline)
-                    .frame(minWidth: 130, alignment: .trailing)
-                    .onTapGesture {
-                        onDateTextTap()
-                    }
-                    .popover(isPresented: $datePickerIsShown) {
-                        DatePicker("Date", selection: $date, displayedComponents: [.date])
-                            .labelsHidden()
-                            .datePickerStyle(.graphical)
-                            .padding()
-                    }
-                    .contextMenu {
-                        if !calendar.isDateInToday(date) {
-                            Button("Today") {
-                                date = .now
-                            }
+        HStack {
+            Text(date, style: .date)
+                .font(.headline)
+                .frame(minWidth: 130, alignment: .trailing)
+                .onTapGesture {
+                    onDateTextTap()
+                }
+                .popover(isPresented: $datePickerIsShown) {
+                    DatePicker("Date", selection: $date, displayedComponents: [.date])
+                        .labelsHidden()
+                        .datePickerStyle(.graphical)
+                        .padding()
+                }
+                .contextMenu {
+                    if !calendar.isDateInToday(date) {
+                        Button("Today") {
+                            date = .now
                         }
                     }
-                Stepper(
-                    value: $date,
-                    step: -60 * 60 * 24
-                ) {}
-
-            }
-            .onHover { bool in
-                onHoverDateController(bool)
-            }
-            HistoryInstanceTable(category: category, date: date)
+                }
+            Stepper(
+                value: $date,
+                step: -60 * 60 * 24
+            ) {}
+            
+        }
+        .onHover { bool in
+            onHoverDateController(bool)
         }
     }
     
@@ -93,10 +86,10 @@ struct HistoryInstanceController: View {
     }
 }
 
-struct HistoryInstanceControllerWrapper: View {
-    @Query private var categories: [Category]
+fileprivate struct HistoryInstanceControllerWrapper: View {
+    @State private var date = Date.now
     var body: some View {
-        HistoryInstanceController(category: categories.first!)
+        HistoryInstanceController(date: $date)
             .padding()
     }
 }

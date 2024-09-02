@@ -45,7 +45,7 @@ struct CategoryInput: View {
                 .disabled(shouldSaveDisabled)
             }
             Divider()
-            HistoryInstanceController(category: category)
+            HistoryInstance(category: category)
         }
         .padding()
     }
