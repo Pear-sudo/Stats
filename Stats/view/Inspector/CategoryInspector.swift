@@ -13,7 +13,8 @@ struct CategoryInspector: View {
     private typealias DisclosureGroupStates = [DisclosureGroupName: Bool]
     
     @State private var disclosureGroupStates: DisclosureGroupStates = [
-        .historicalStats: true
+        .historicalStats: true,
+        .historicalCharts: true
     ]
     
     var category: Category
@@ -23,6 +24,9 @@ struct CategoryInspector: View {
             ScrollView {
                 DisclosureGroup(DisclosureGroupName.historicalStats.rawValue, isExpanded: self[.historicalStats]) {
                     HistoricalStats(category: category)
+                }
+                DisclosureGroup(DisclosureGroupName.historicalCharts.rawValue, isExpanded: self[.historicalCharts]) {
+                    HistoricalChart(category: category)
                 }
             }
         }
@@ -68,7 +72,8 @@ struct CategoryInspector: View {
     }
     
     private enum DisclosureGroupName: String, Codable {
-        case historicalStats = "Historical Stats"
+        case historicalStats = "Stats"
+        case historicalCharts = "Charts"
     }
 }
 
