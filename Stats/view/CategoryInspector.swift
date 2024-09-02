@@ -9,8 +9,17 @@ import SwiftUI
 import SwiftData
 
 struct CategoryInspector: View {
+    private typealias DisclosureGroupStates = [DisclosureGroupName: Bool]
+    
     @Environment(\.modelContext) private var modelContext
+    
+    @State private var stats = Stats()
+    @State private var disclosureGroupStates: DisclosureGroupStates = [
+        .historicalStats: true
+    ]
+    
     private var __latestInstance: Query<Instance, [Instance]>
+    
     var category: Category
     init(category: Category) {
         self.category = category
@@ -28,31 +37,72 @@ struct CategoryInspector: View {
             return d
         }())
     }
-    @State private var stats = Stats()
+    
     var body: some View {
         VStack(alignment: .center) {
-            Grid {
-                GridRow {
-                    Text("min: \(stats.min.formatted())")
-                    Text("max: \(stats.max.formatted())")
+            DisclosureGroup(DisclosureGroupName.historicalStats.rawValue, isExpanded: self[.historicalStats]) {
+                Grid(alignment: .leading) {
+                    GridRow {
+                        Text("min: \(stats.min.formatted())")
+                        Text("max: \(stats.max.formatted())")
+                    }
+                    .fixedSize()
+                    GridRow {
+                        Text("avg: \(stats.avg.formatted(.number.precision(.fractionLength(2))))")
+                        Text("std: \(stats.std.formatted(.number.precision(.fractionLength(2))))")
+                    }
+                    .fixedSize()
                 }
-                .fixedSize()
-                GridRow {
-                    Text("avg: \(stats.avg.formatted(.number.precision(.fractionLength(2))))")
-                    Text("std: \(stats.std.formatted(.number.precision(.fractionLength(2))))")
-                }
-                .fixedSize()
             }
             Spacer()
         }
         .padding(.top)
         .frame(maxWidth: .infinity)
         .onAppear {
-            calculateStats()
+            handleOnAppear()
         }
         .onChange(of: __latestInstance.wrappedValue) {
             calculateStats()
         }
+        .onChange(of: disclosureGroupStates) {
+            let jsonData = try! JSONEncoder().encode(disclosureGroupStates)
+            UserDefaults.standard.set(jsonData, forKey: "disclosureGroupStates")
+        }
+    }
+    
+    private func handleOnAppear() {
+        calculateStats()
+        restoreDisclosureGroupStats()
+    }
+    
+    // MARK: - Disclosure Group
+    
+    private func restoreDisclosureGroupStats() {
+        guard
+            let data = UserDefaults.standard.data(forKey: "disclosureGroupStates"),
+            let states = try? JSONDecoder().decode(DisclosureGroupStates.self, from: data) else {
+            return
+        }
+        if states != disclosureGroupStates {
+            disclosureGroupStates = states
+        }
+    }
+    
+    private subscript(key: DisclosureGroupName) -> Binding<Bool> {
+        Binding<Bool>(
+            get: {
+                self.disclosureGroupStates[key, default: false]
+            },
+            set: { newValue in
+                withAnimation {
+                    disclosureGroupStates[key] = newValue
+                }
+            }
+        )
+    }
+    
+    private enum DisclosureGroupName: String, Codable {
+        case historicalStats = "Historical States"
     }
     
     // MARK: - Statistics
