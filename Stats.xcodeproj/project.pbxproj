@@ -35,6 +35,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		0074DACD2CA7EFC400AA5342 /* Screenshots */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Screenshots;
+			sourceTree = "<group>";
+		};
 		00AC52772C8183750040F25E /* Stats */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Stats;
@@ -80,6 +85,7 @@
 		00AC526C2C8183750040F25E = {
 			isa = PBXGroup;
 			children = (
+				0074DACD2CA7EFC400AA5342 /* Screenshots */,
 				0074DAC92CA7EADB00AA5342 /* README.md */,
 				00AC52772C8183750040F25E /* Stats */,
 				00AC528B2C8183800040F25E /* StatsTests */,
@@ -114,6 +120,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				0074DACD2CA7EFC400AA5342 /* Screenshots */,
 				00AC52772C8183750040F25E /* Stats */,
 			);
 			name = Stats;
